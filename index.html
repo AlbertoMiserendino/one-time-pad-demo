@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Demo One-Time Pad</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <style>
+        body {
+            max-width: 1000px;
+        }
+
+        pre {
+            white-space: pre-wrap;
+            word-break: break-word;
+            margin-bottom: 0;
+            font-family: var(--bs-font-monospace);
+        }
+
+        .byte-group {
+            color: blue;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body class="container py-4">
+    <h1 class="mb-3">Demo One-Time Pad</h1>
+
+    <div class="alert alert-warning">
+        Demo didattica: il One-Time Pad è sicuro solo se la chiave è casuale, lunga quanto il messaggio (in byte) e usata una sola volta.
+    </div>
+
+    <div class="mb-4">
+        <label for="message" class="form-label fw-bold">Messaggio</label>
+        <textarea id="message" rows="3" class="form-control">Oggi è una bella giornata!</textarea>
+
+        <div class="mt-3 d-flex flex-wrap align-items-center gap-3">
+            <span class="fw-semibold">Formato messaggio:</span>
+
+            <div class="form-check form-check-inline mb-0">
+                <input class="form-check-input" type="radio" name="msgFormat" id="msgPlain" value="plain" checked>
+                <label class="form-check-label" for="msgPlain">plain text</label>
+            </div>
+
+            <div class="form-check form-check-inline mb-0">
+                <input class="form-check-input" type="radio" name="msgFormat" id="msgBin" value="bin">
+                <label class="form-check-label" for="msgBin">bin</label>
+            </div>
+
+            <div class="form-check form-check-inline mb-0">
+                <input class="form-check-input" type="radio" name="msgFormat" id="msgDec" value="dec">
+                <label class="form-check-label" for="msgDec">dec</label>
+            </div>
+
+            <div class="form-check form-check-inline mb-0">
+                <input class="form-check-input" type="radio" name="msgFormat" id="msgHex" value="hex">
+                <label class="form-check-label" for="msgHex">hex</label>
+            </div>
+        </div>
+    </div>
+
+    <div class="mb-4">
+        <label for="keyInput" class="form-label fw-bold">Chiave</label>
+
+        <div class="input-group">
+            <input type="text" id="keyInput" class="form-control"
+                placeholder="Inserisci la chiave nel formato selezionato, oppure lasciala vuota per generarla automaticamente durante la cifratura">
+            <button id="clearKeyBtn" class="btn btn-outline-secondary" type="button">Cancella</button>
+            <button id="refreshKeyBtn" class="btn btn-outline-primary" type="button">Refresh</button>
+        </div>
+
+        <div class="mt-3 d-flex flex-wrap align-items-center gap-3">
+            <span class="fw-semibold">Formato chiave:</span>
+
+            <div class="form-check form-check-inline mb-0">
+                <input class="form-check-input" type="radio" name="keyFormat" id="keyBin" value="bin">
+                <label class="form-check-label" for="keyBin">bin</label>
+            </div>
+
+            <div class="form-check form-check-inline mb-0">
+                <input class="form-check-input" type="radio" name="keyFormat" id="keyDec" value="dec" checked>
+                <label class="form-check-label" for="keyDec">dec</label>
+            </div>
+
+            <div class="form-check form-check-inline mb-0">
+                <input class="form-check-input" type="radio" name="keyFormat" id="keyHex" value="hex">
+                <label class="form-check-label" for="keyHex">hex</label>
+            </div>
+        </div>
+    </div>
+
+    <div class="mb-4">
+        <button id="generateBtn" class="btn btn-primary me-2">Critta</button>
+        <button id="decryptBtn" class="btn btn-secondary">Decifra</button>
+    </div>
+
+    <h2 class="h4 mb-3">Risultati</h2>
+
+    <p class="mb-1"><strong id="labelOriginal">Messaggio originale:</strong></p>
+    <div class="card mb-3">
+        <div class="card-header d-flex justify-content-end py-2">
+            <button class="btn btn-sm btn-outline-secondary copy-btn" type="button" data-copy-target="originalText">Copia</button>
+        </div>
+        <div class="card-body py-2">
+            <pre id="originalText" class="mb-0"></pre>
+        </div>
+    </div>
+
+    <p class="mb-1">byte della codifica UTF-8 in rappresentazione decimale</p>
+    <div class="card mb-3">
+        <div class="card-header d-flex justify-content-end py-2">
+            <button class="btn btn-sm btn-outline-secondary copy-btn" type="button" data-copy-target="messageBytes">Copia</button>
+        </div>
+        <div class="card-body py-2">
+            <pre id="messageBytes" class="mb-0"></pre>
+        </div>
+    </div>
+
+    <p class="mb-1">byte della codifica UTF-8 in rappresentazione binaria</p>
+    <div class="card mb-3">
+        <div class="card-header d-flex justify-content-end py-2">
+            <button class="btn btn-sm btn-outline-secondary copy-btn" type="button" data-copy-target="messageBits">Copia</button>
+        </div>
+        <div class="card-body py-2">
+            <pre id="messageBits" class="mb-0"></pre>
+        </div>
+    </div>
+
+    <p class="mb-1"><strong>Chiave casuale:</strong></p>
+
+    <p class="mb-1">...in decimale</p>
+    <div class="card mb-3">
+        <div class="card-header d-flex justify-content-end py-2">
+            <button class="btn btn-sm btn-outline-secondary copy-btn" type="button" data-copy-target="keyBytes">Copia</button>
+        </div>
+        <div class="card-body py-2">
+            <pre id="keyBytes" class="mb-0"></pre>
+        </div>
+    </div>
+
+    <p class="mb-1">...in binario</p>
+    <div class="card mb-3">
+        <div class="card-header d-flex justify-content-end py-2">
+            <button class="btn btn-sm btn-outline-secondary copy-btn" type="button" data-copy-target="keyBits">Copia</button>
+        </div>
+        <div class="card-body py-2">
+            <pre id="keyBits" class="mb-0"></pre>
+        </div>
+    </div>
+
+    <p class="mb-1"><strong id="labelCipher">Ciphertext:</strong></p>
+
+    <p class="mb-1">...in decimale</p>
+    <div class="card mb-3">
+        <div class="card-header d-flex justify-content-end py-2">
+            <button class="btn btn-sm btn-outline-secondary copy-btn" type="button" data-copy-target="cipherBytes">Copia</button>
+        </div>
+        <div class="card-body py-2">
+            <pre id="cipherBytes" class="mb-0"></pre>
+        </div>
+    </div>
+
+    <p class="mb-1">...in binario</p>
+    <div class="card mb-3">
+        <div class="card-header d-flex justify-content-end py-2">
+            <button class="btn btn-sm btn-outline-secondary copy-btn" type="button" data-copy-target="cipherBits">Copia</button>
+        </div>
+        <div class="card-body py-2">
+            <pre id="cipherBits" class="mb-0"></pre>
+        </div>
+    </div>
+
+    <p class="mb-1">...in esadecimale</p>
+    <div class="card mb-3">
+        <div class="card-header d-flex justify-content-end py-2">
+            <button class="btn btn-sm btn-outline-secondary copy-btn" type="button" data-copy-target="cipherHex">Copia</button>
+        </div>
+        <div class="card-body py-2">
+            <pre id="cipherHex" class="mb-0"></pre>
+        </div>
+    </div>
+
+    <div id="decryptedSection">
+        <p class="mb-1"><strong id="labelDecrypted">Messaggio decifrato:</strong></p>
+        <div class="card mb-3">
+            <div class="card-header d-flex justify-content-end py-2">
+                <button class="btn btn-sm btn-outline-secondary copy-btn" type="button" data-copy-target="decryptedText">Copia</button>
+            </div>
+            <div class="card-body py-2">
+                <pre id="decryptedText" class="mb-0"></pre>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="h4 mt-4 mb-3">Dettaglio carattere per carattere</h2>
+
+    <div class="table-responsive">
+        <table class="table table-bordered table-sm align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>Pos</th>
+                    <th>Carattere</th>
+                    <th>Messaggio (bin)</th>
+                    <th>Chiave (bin)</th>
+                    <th>Ciphertext (bin)</th>
+                </tr>
+            </thead>
+            <tbody id="detailsBody"></tbody>
+        </table>
+    </div>
+
+    <script>
+        let currentKey = null;
+        let currentCipher = null;
+        let currentMessageBytes = null;
+
+        function stringToBytes(str) {
+            return new TextEncoder().encode(str);
+        }
+
+        function bytesToString(bytes) {
+            return new TextDecoder().decode(bytes);
+        }
+
+        function bytesToBinary(bytes) {
+            return Array.from(bytes)
+                .map(b => b.toString(2).padStart(8, "0"))
+                .join(" ");
+        }
+
+        function bytesToHex(bytes) {
+            return Array.from(bytes)
+                .map(b => b.toString(16).padStart(2, "0"))
+                .join(" ");
+        }
+
+        function bytesToDecimal(bytes) {
+            return Array.from(bytes).join(" ");
+        }
+
+        function xorBytes(a, b) {
+            const out = new Uint8Array(a.length);
+            for (let i = 0; i < a.length; i++) {
+                out[i] = a[i] ^ b[i];
+            }
+            return out;
+        }
+
+        function randomBytes(length) {
+            const arr = new Uint8Array(length);
+            crypto.getRandomValues(arr);
+            return arr;
+        }
+
+        function getSelectedFormat(name) {
+            return document.querySelector(`input[name="${name}"]:checked`).value;
+        }
+
+        function parseTokens(input) {
+            return input
+                .trim()
+                .split(/[\s,]+/)
+                .map(x => x.trim())
+                .filter(x => x !== "");
+        }
+
+        function parseBytes(input, format) {
+            const raw = input.trim();
+
+            if (!raw) {
+                return new Uint8Array([]);
+            }
+
+            if (format === "plain") {
+                return stringToBytes(raw);
+            }
+
+            const tokens = parseTokens(raw);
+            let numbers;
+
+            if (format === "dec") {
+                numbers = tokens.map(token => {
+                    const n = Number(token);
+                    if (!Number.isInteger(n) || n < 0 || n > 255) {
+                        throw new Error("Ogni valore decimale deve essere un intero tra 0 e 255.");
+                    }
+                    return n;
+                });
+            } else if (format === "hex") {
+                numbers = tokens.map(token => {
+                    if (!/^[0-9a-fA-F]{1,2}$/.test(token)) {
+                        throw new Error("Ogni valore esadecimale deve essere composto da 1 o 2 cifre hex.");
+                    }
+                    return parseInt(token, 16);
+                });
+            } else if (format === "bin") {
+                numbers = tokens.map(token => {
+                    if (!/^[01]{8}$/.test(token)) {
+                        throw new Error("Ogni valore binario deve essere composto da 8 bit.");
+                    }
+                    return parseInt(token, 2);
+                });
+            } else {
+                throw new Error("Formato non valido.");
+            }
+
+            return new Uint8Array(numbers);
+        }
+
+        function formatBytes(bytes, format) {
+            if (format === "dec") return bytesToDecimal(bytes);
+            if (format === "hex") return bytesToHex(bytes);
+            if (format === "bin") return bytesToBinary(bytes);
+            return bytesToDecimal(bytes);
+        }
+
+        function setEncryptModeLabels() {
+            document.getElementById("labelOriginal").textContent = "Messaggio originale:";
+            document.getElementById("labelCipher").textContent = "Ciphertext:";
+            document.getElementById("labelDecrypted").textContent = "Messaggio decifrato:";
+            document.getElementById("decryptedSection").style.display = "none";
+        }
+
+        function setDecryptModeLabels() {
+            document.getElementById("labelOriginal").textContent = "Ciphertext:";
+            document.getElementById("labelCipher").textContent = "Messaggio decifrato:";
+            document.getElementById("labelDecrypted").textContent = "...in chiaro:";
+            document.getElementById("decryptedSection").style.display = "block";
+        }
+
+        function renderDetails(messageBytes, keyBytes, cipherBytes) {
+            const body = document.getElementById("detailsBody");
+            body.innerHTML = "";
+
+            let i = 0;
+
+            while (i < messageBytes.length) {
+                const groupLength = utf8CharLength(messageBytes[i]) || 1;
+
+                for (let j = 0; j < groupLength && i + j < messageBytes.length; j++) {
+                    const index = i + j;
+                    const tr = document.createElement("tr");
+
+                    const char = new TextDecoder().decode(
+                        messageBytes.slice(i, Math.min(i + groupLength, messageBytes.length))
+                    );
+
+                    const cssClass = groupLength > 1 ? "byte-group" : "";
+
+                    tr.innerHTML = `
+                        <td class="${cssClass}">${index}</td>
+                        <td class="${cssClass}">
+                            ${j === 0 ? escapeHtml(char === " " ? "[spazio]" : char) : ""}
+                        </td>
+                        <td class="${cssClass}">
+                            ${messageBytes[index].toString(2).padStart(8, "0")}
+                        </td>
+                        <td class="${cssClass}">
+                            ${keyBytes[index].toString(2).padStart(8, "0")}
+                        </td>
+                        <td class="${cssClass}">
+                            ${cipherBytes[index].toString(2).padStart(8, "0")}
+                        </td>
+                    `;
+
+                    body.appendChild(tr);
+                }
+
+                i += groupLength;
+            }
+        }
+
+        function escapeHtml(str) {
+            return str
+                .replaceAll("&", "&amp;")
+                .replaceAll("<", "&lt;")
+                .replaceAll(">", "&gt;")
+                .replaceAll('"', "&quot;")
+                .replaceAll("'", "&#039;");
+        }
+
+        function regenerateKeyFromMessageLength() {
+            const messageInput = document.getElementById("message").value;
+            const msgFormat = getSelectedFormat("msgFormat");
+            const keyFormat = getSelectedFormat("keyFormat");
+
+            let messageBytes;
+
+            try {
+                messageBytes = parseBytes(messageInput, msgFormat);
+            } catch (err) {
+                alert("Messaggio non valido per generare la chiave.");
+                return;
+            }
+
+            if (!messageBytes.length) {
+                alert("Messaggio vuoto.");
+                return;
+            }
+
+            const keyBytes = randomBytes(messageBytes.length);
+
+            currentKey = keyBytes;
+            document.getElementById("keyInput").value = formatBytes(keyBytes, keyFormat);
+        }
+
+        function clearKey() {
+            currentKey = null;
+            document.getElementById("keyInput").value = "";
+        }
+
+        async function copyFieldValue(targetId, button) {
+            const element = document.getElementById(targetId);
+            const text = element ? element.textContent : "";
+
+            if (!text.trim()) {
+                return;
+            }
+
+            const originalLabel = button.textContent;
+
+            try {
+                await navigator.clipboard.writeText(text);
+                button.textContent = "Copiato";
+                button.classList.remove("btn-outline-secondary");
+                button.classList.add("btn-success");
+            } catch (err) {
+                button.textContent = "Errore";
+                button.classList.remove("btn-outline-secondary");
+                button.classList.add("btn-danger");
+            }
+
+            setTimeout(() => {
+                button.textContent = originalLabel;
+                button.classList.remove("btn-success", "btn-danger");
+                button.classList.add("btn-outline-secondary");
+            }, 1200);
+        }
+
+        function generateAndEncrypt() {
+            setEncryptModeLabels();
+
+            const messageInput = document.getElementById("message").value;
+            const msgFormat = getSelectedFormat("msgFormat");
+            const keyFormat = getSelectedFormat("keyFormat");
+
+            let messageBytes;
+            try {
+                messageBytes = parseBytes(messageInput, msgFormat);
+            } catch (err) {
+                alert(err.message);
+                return;
+            }
+
+            let keyBytes;
+            const keyInputValue = document.getElementById("keyInput").value.trim();
+
+            if (keyInputValue) {
+                try {
+                    keyBytes = parseBytes(keyInputValue, keyFormat);
+                } catch (err) {
+                    alert(err.message);
+                    return;
+                }
+
+                if (keyBytes.length !== messageBytes.length) {
+                    alert(`La chiave deve contenere esattamente ${messageBytes.length} byte.`);
+                    return;
+                }
+            } else {
+                keyBytes = randomBytes(messageBytes.length);
+                document.getElementById("keyInput").value = formatBytes(keyBytes, keyFormat);
+            }
+
+            const cipherBytes = xorBytes(messageBytes, keyBytes);
+
+            currentMessageBytes = messageBytes;
+            currentKey = keyBytes;
+            currentCipher = cipherBytes;
+
+            document.getElementById("originalText").textContent =
+                msgFormat === "plain" ? messageInput : bytesToString(messageBytes);
+
+            document.getElementById("messageBytes").textContent = bytesToDecimal(messageBytes);
+            document.getElementById("messageBits").textContent = bytesToBinary(messageBytes);
+
+            document.getElementById("keyBytes").textContent = bytesToDecimal(keyBytes);
+            document.getElementById("keyBits").textContent = bytesToBinary(keyBytes);
+
+            document.getElementById("cipherBytes").textContent = bytesToDecimal(cipherBytes);
+            document.getElementById("cipherBits").textContent = bytesToBinary(cipherBytes);
+            document.getElementById("cipherHex").textContent = bytesToHex(cipherBytes);
+
+            document.getElementById("decryptedText").textContent = "";
+            renderDetails(messageBytes, keyBytes, cipherBytes);
+        }
+
+        function decryptCurrent() {
+            setDecryptModeLabels();
+
+            const input = document.getElementById("message").value;
+            const msgFormat = getSelectedFormat("msgFormat");
+            const keyFormat = getSelectedFormat("keyFormat");
+
+            let cipherBytes;
+            try {
+                cipherBytes = parseBytes(input, msgFormat);
+            } catch (err) {
+                alert(err.message);
+                return;
+            }
+
+            const keyInputValue = document.getElementById("keyInput").value.trim();
+            if (!keyInputValue) {
+                alert("Inserisci una chiave per decifrare.");
+                return;
+            }
+
+            let keyBytes;
+            try {
+                keyBytes = parseBytes(keyInputValue, keyFormat);
+            } catch (err) {
+                alert(err.message);
+                return;
+            }
+
+            if (keyBytes.length !== cipherBytes.length) {
+                alert(`La chiave deve contenere esattamente ${cipherBytes.length} byte.`);
+                return;
+            }
+
+            const decryptedBytes = xorBytes(cipherBytes, keyBytes);
+            const decryptedText = bytesToString(decryptedBytes);
+
+            currentMessageBytes = decryptedBytes;
+            currentKey = keyBytes;
+            currentCipher = cipherBytes;
+
+            document.getElementById("originalText").textContent =
+                msgFormat === "plain" ? input : formatBytes(cipherBytes, msgFormat);
+
+            document.getElementById("messageBytes").textContent = bytesToDecimal(cipherBytes);
+            document.getElementById("messageBits").textContent = bytesToBinary(cipherBytes);
+
+            document.getElementById("keyBytes").textContent = bytesToDecimal(keyBytes);
+            document.getElementById("keyBits").textContent = bytesToBinary(keyBytes);
+
+            document.getElementById("cipherBytes").textContent = bytesToDecimal(decryptedBytes);
+            document.getElementById("cipherBits").textContent = bytesToBinary(decryptedBytes);
+            document.getElementById("cipherHex").textContent = bytesToHex(decryptedBytes);
+
+            document.getElementById("decryptedText").textContent = decryptedText;
+            renderDetails(decryptedBytes, keyBytes, cipherBytes);
+        }
+
+        function utf8CharLength(firstByte) {
+            if ((firstByte & 0b10000000) === 0) return 1;
+            if ((firstByte & 0b11100000) === 0b11000000) return 2;
+            if ((firstByte & 0b11110000) === 0b11100000) return 3;
+            if ((firstByte & 0b11111000) === 0b11110000) return 4;
+            return 0;
+        }
+
+        document.getElementById("generateBtn").addEventListener("click", generateAndEncrypt);
+        document.getElementById("decryptBtn").addEventListener("click", decryptCurrent);
+        document.getElementById("clearKeyBtn").addEventListener("click", clearKey);
+        document.getElementById("refreshKeyBtn").addEventListener("click", regenerateKeyFromMessageLength);
+
+        document.querySelectorAll(".copy-btn").forEach(button => {
+            button.addEventListener("click", () => {
+                copyFieldValue(button.dataset.copyTarget, button);
+            });
+        });
+
+        generateAndEncrypt();
+    </script>
+</body>
+
+</html>

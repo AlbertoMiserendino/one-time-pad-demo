@@ -29,7 +29,7 @@
     <h1 class="mb-3">One-Time Pad Demo</h1>
 
     <div class="alert alert-warning">
-        A true one-time pad requires a uniformly random, secret key, as long as the message in bytes, used only once. This educational demo uses the browser's cryptographic random generator; it does not provide information-theoretic randomness, secure key exchange, or message authentication. Do not use it for sensitive data.
+        A true one-time pad requires a uniformly random, secret key with at least as many bytes as the message. Each key byte used must be used only once for encryption. This educational demo uses the browser's cryptographic random generator; it does not provide information-theoretic randomness, secure key exchange, or message authentication. Do not use it for sensitive data.
     </div>
 
     <section class="mb-4" aria-labelledby="guide-title">
@@ -41,6 +41,7 @@
             <li>Keep the same key and its format, then click <strong>Decrypt</strong>. The decoded text should match your original message.</li>
             <li>For a new message, click <strong>Clear</strong> or <strong>Generate new key</strong> before encrypting. Never reuse a pad for another message.</li>
         </ol>
+        <p>A supplied key may be longer than the input: only its first N bytes are used for N input bytes, for both encryption and decryption. Results show only the key bytes actually used. The key field keeps the full key; the demo does not track or advance through unused bytes. Clear or replace the key before encrypting another message.</p>
         <p>Each output byte is <code>message XOR key</code>. Applying the same key again recovers the message because <code>(M XOR K) XOR K = M</code>.</p>
         <p>For numeric input, separate bytes with spaces or commas: decimal <code>65 66</code>, binary <code>01000001 01000010</code>, or hex <code>41 42</code> all represent &ldquo;AB&rdquo;. Select the input format before entering bytes. All calculations run in your browser.</p>
     </section>
@@ -447,8 +448,8 @@
                     return;
                 }
 
-                if (keyBytes.length !== messageBytes.length) {
-                    alert(`The key must contain exactly ${messageBytes.length} bytes.`);
+                if (keyBytes.length < messageBytes.length) {
+                    alert(`The key must contain at least ${messageBytes.length} bytes.`);
                     return;
                 }
             } else {
@@ -456,6 +457,7 @@
                 document.getElementById("keyInput").value = formatBytes(keyBytes, keyFormat);
             }
 
+            keyBytes = keyBytes.slice(0, messageBytes.length);
             setEncryptModeLabels();
             const cipherBytes = xorBytes(messageBytes, keyBytes);
 
@@ -511,11 +513,12 @@
                 return;
             }
 
-            if (keyBytes.length !== cipherBytes.length) {
-                alert(`The key must contain exactly ${cipherBytes.length} bytes.`);
+            if (keyBytes.length < cipherBytes.length) {
+                alert(`The key must contain at least ${cipherBytes.length} bytes.`);
                 return;
             }
 
+            keyBytes = keyBytes.slice(0, cipherBytes.length);
             setDecryptModeLabels();
             const decryptedBytes = xorBytes(cipherBytes, keyBytes);
             const decryptedText = bytesToString(decryptedBytes);
